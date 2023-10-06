@@ -5,9 +5,11 @@
  * places it on a local IBM MQ queue (QM1 / DEV.ADAM)
  * ----------------------------------------------------------------------------------------------
  * Date       Author        Description
+ * ----------------------------------------------------------------------------------------------
  * 10/01/23   A. Hout       Original source
  * ----------------------------------------------------------------------------------------------
- * 
+ * 10/05/23   A. Hout       Generate unique msg and corrl ID's for each datagram
+ * ----------------------------------------------------------------------------------------------
  */
 
 #include <stdio.h>
@@ -53,6 +55,7 @@ int main(int argc, char **argv)
    //Output message variables
    char msgBuf[BUF_SIZE];                          //Output message buffer
    int  msgLen;                                    //Length of output msg
+   int  msgCnt;                                    //Count of datagrams generated
    
    //-------------------------------------------------------
    //Setup MQ connection options/security
@@ -60,7 +63,7 @@ int main(int argc, char **argv)
    cnxOpt.SecurityParmsPtr = &cnxSec;
    cnxOpt.Version = MQCNO_VERSION_5;
    cnxSec.AuthenticationType = MQCSP_AUTH_USER_ID_AND_PWD;
-   cnxSec.CSPUserIdPtr = pUID;                                  //ID = "app"
+   cnxSec.CSPUserIdPtr = pUID;                                            //ID = "app"
    cnxSec.CSPUserIdLength = 3;
    cnxSec.CSPPasswordPtr = pPwd;
    cnxSec.CSPPasswordLength = 9;
@@ -68,7 +71,7 @@ int main(int argc, char **argv)
    //-------------------------------------------------------
    //Connect to the queue manager; Check for errors/warnings
    //-------------------------------------------------------
-   MQCONNX(pQmg,&cnxOpt,&Hcnx,&cmpCde,&resCde);                 //Queue manager = QM1
+   MQCONNX(pQmg,&cnxOpt,&Hcnx,&cmpCde,&resCde);                            //Queue manager = QM1
 
    if (cmpCde == MQCC_FAILED){
       printf("MQCONNX failed with reason code %d\n",resCde);
@@ -84,7 +87,7 @@ int main(int argc, char **argv)
    //Open the desired message queue for output
    //-------------------------------------------------------
    opnOpt = MQOO_OUTPUT | MQOO_FAIL_IF_QUIESCING;
-   strncpy(objDsc.ObjectName,pQue,9);                           //Queu = DEV.ADAM               
+   strncpy(objDsc.ObjectName,pQue,9);                                      //Queu = DEV.ADAM               
    MQOPEN(Hcnx,&objDsc,opnOpt,&Hobj,&opnCde,&resCde);
           
    if (resCde != MQRC_NONE)
@@ -102,14 +105,13 @@ int main(int argc, char **argv)
    //-------------------------------------------------------
    //Build datagram and place it on the queue
    //-------------------------------------------------------
-   memcpy(msgDsc.Format,MQFMT_STRING,(size_t)MQ_FORMAT_LENGTH); //Char string fmt
+   memcpy(msgDsc.Format,MQFMT_STRING,(size_t)MQ_FORMAT_LENGTH);            //Char string fmt
    putOpt.Options = MQPMO_NO_SYNCPOINT | MQPMO_FAIL_IF_QUIESCING;
-   memcpy(msgDsc.MsgId,MQMI_NONE,sizeof(msgDsc.MsgId));
-   
-   int msgCnt = 0;
+   putOpt.Options |= MQPMO_NEW_MSG_ID;                                     //Unique MQMD.MsgId for each datagram
+   putOpt.Options |= MQPMO_NEW_CORREL_ID;
    
    while(1){
-      memset(msgBuf,0x00,sizeof(msgBuf));
+      //memcpy(msgDsc.MsgId,MQMI_NONE,sizeof(msgDsc.MsgId));
       msgLen = buildMsg(msgBuf);
       MQPUT(Hcnx,Hobj,&msgDsc,&putOpt,msgLen,msgBuf,&cmpCde,&resCde);
              
@@ -156,7 +158,7 @@ int buildMsg(char *buffer){
    //Put timestamp into the output buffer
    time(&raw_time);
    ptr_ts = gmtime(&raw_time);
-   len = sprintf (buffer,"Time: %0.2d:%0.2d:%0.2d\n",
+   len = sprintf (buffer,"Time: %02d:%02d:%02d\n",
                     ptr_ts->tm_hour, ptr_ts->tm_min,ptr_ts->tm_sec);
       
    //Put host name into the output buffer
