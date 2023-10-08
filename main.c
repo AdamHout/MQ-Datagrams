@@ -10,6 +10,8 @@
  * ----------------------------------------------------------------------------------------------
  * 10/05/23   A. Hout       Generate unique msg and corrl ID's for each datagram
  * ----------------------------------------------------------------------------------------------
+ * 10/07/23   A. Hout       Update error logic and datagram format
+ * ----------------------------------------------------------------------------------------------
  */
 
 #include <stdio.h>
@@ -30,11 +32,15 @@ int buildMsg(char *);
 //---------------------------------------------------------------
 int main(int argc, char **argv)
 {
-   //Connection literals
+   //Connection literals/variables
    char *pQmg = "QM1";                             //Target queue manager
    char *pQue = "DEV.ADAM";                        //Target queue
-   char *pUID = "app";                             //MQ client user ID
-   char *pPwd = "Vn750a16!";                       //Client password
+   char uid[10];                                   //User ID
+   char pwd[10];                                   //User password
+   FILE *pFP; 
+   
+ //  char *pUID = "app";                             //MQ client user ID
+ //  char *pPwd = "Vn750a16!";                       //Client password
    
    //MQI structures
    MQCNO   cnxOpt = {MQCNO_DEFAULT};               //Connection options  
@@ -55,7 +61,7 @@ int main(int argc, char **argv)
    //Output message variables
    char msgBuf[BUF_SIZE];                          //Output message buffer
    int  msgLen;                                    //Length of output msg
-   int  msgCnt;                                    //Count of datagrams generated
+   int  msgCnt=0;                                  //Count of datagrams generated
    
    //-------------------------------------------------------
    //Setup MQ connection options/security
@@ -63,10 +69,19 @@ int main(int argc, char **argv)
    cnxOpt.SecurityParmsPtr = &cnxSec;
    cnxOpt.Version = MQCNO_VERSION_5;
    cnxSec.AuthenticationType = MQCSP_AUTH_USER_ID_AND_PWD;
-   cnxSec.CSPUserIdPtr = pUID;                                            //ID = "app"
-   cnxSec.CSPUserIdLength = 3;
-   cnxSec.CSPPasswordPtr = pPwd;
-   cnxSec.CSPPasswordLength = 9;
+   
+   pFP = fopen("/home/adam/mqusers","r");
+   if (pFP == NULL){
+	   fprintf(stderr, "fopen() failed in file %s at line # %d", __FILE__,__LINE__);
+	   return -1;
+	}
+   
+	fscanf(pFP,"%s %s",uid,pwd);
+	fclose(pFP);
+   cnxSec.CSPUserIdPtr = uid;                                            
+   cnxSec.CSPUserIdLength = strlen(uid);
+   cnxSec.CSPPasswordPtr = pwd;
+   cnxSec.CSPPasswordLength = strlen(pwd);
    
    //-------------------------------------------------------
    //Connect to the queue manager; Check for errors/warnings
@@ -75,7 +90,7 @@ int main(int argc, char **argv)
 
    if (cmpCde == MQCC_FAILED){
       printf("MQCONNX failed with reason code %d\n",resCde);
-      return((int)resCde);
+      return (int)resCde;
    }
    
    if (cmpCde == MQCC_WARNING){
@@ -113,8 +128,10 @@ int main(int argc, char **argv)
    while(1){
       //memcpy(msgDsc.MsgId,MQMI_NONE,sizeof(msgDsc.MsgId));
       msgLen = buildMsg(msgBuf);
+      if (msgLen < 1)
+         break
+         
       MQPUT(Hcnx,Hobj,&msgDsc,&putOpt,msgLen,msgBuf,&cmpCde,&resCde);
-             
       if (resCde != MQRC_NONE){
          printf("\nMQPUT ended with reason code %d\n",resCde);
          break;
@@ -146,7 +163,7 @@ int main(int argc, char **argv)
 
 //Build an output datagram comprised of host system resources
 int buildMsg(char *buffer){
-   FILE *fp;                                        //For /proc/stat
+   FILE *pFP;                                       //For /proc/stat
    int  len = 0;                                    //Output msg length
    char hostName[HOST_NAME_MAX+1];
    long double loadBeg[4], loadEnd[4], loadAvg;     //CPU core arrays
@@ -158,29 +175,39 @@ int buildMsg(char *buffer){
    //Put timestamp into the output buffer
    time(&raw_time);
    ptr_ts = gmtime(&raw_time);
-   len = sprintf (buffer,"Time: %02d:%02d:%02d\n",
+   len = sprintf (buffer,"UTC Time: %02d:%02d:%02d\n",
                     ptr_ts->tm_hour, ptr_ts->tm_min,ptr_ts->tm_sec);
       
    //Put host name into the output buffer
    gethostname(hostName,HOST_NAME_MAX+1);
-   len += sprintf(buffer + len,"Host: %s\n",hostName);
+   len += sprintf(buffer + len,"Host ID : %s\n",hostName);
    
    //Derive CPU utilization 
-   fp = fopen("/proc/stat","r");
-   fscanf(fp,"%*s %Lf %Lf %Lf %Lf",&loadBeg[0],&loadBeg[1],&loadBeg[2],&loadBeg[3]);
-   fclose(fp);
+   pFP = fopen("/proc/stat","r");
+   if (pFP == NULL){
+	   fprintf(stderr, "fopen() failed in file %s at line # %d", __FILE__,__LINE__);
+	   return -1; 
+	}
+   
+   fscanf(pFP,"%*s %Lf %Lf %Lf %Lf",&loadBeg[0],&loadBeg[1],&loadBeg[2],&loadBeg[3]);
+   fclose(pFP);
    sleep(1);
-   fp = fopen("/proc/stat","r");
-   fscanf(fp,"%*s %Lf %Lf %Lf %Lf",&loadEnd[0],&loadEnd[1],&loadEnd[2],&loadEnd[3]);
-   fclose(fp);
+   pFP = fopen("/proc/stat","r");
+   if (pFP == NULL){
+	   fprintf(stderr, "fopen() failed in file %s at line # %d", __FILE__,__LINE__);
+	   return -1;
+	}
+   
+   fscanf(pFP,"%*s %Lf %Lf %Lf %Lf",&loadEnd[0],&loadEnd[1],&loadEnd[2],&loadEnd[3]);
+   fclose(pFP);
    loadAvg = ((loadEnd[0]+loadEnd[1]+loadEnd[2]) - (loadBeg[0]+loadBeg[1]+loadBeg[2])) 
              / ((loadEnd[0]+loadEnd[1]+loadEnd[2]+loadEnd[3]) - (loadBeg[0]+loadBeg[1]+loadBeg[2]+loadBeg[3]));
    loadAvg *= 100;
-   len += sprintf(buffer + len,"CPU utilization %05.2LF%%\n",loadAvg);
+   len += sprintf(buffer + len,"CPU Use : %05.2LF%%\n",loadAvg);
    
    //Add avaialble memory to the output message
-   len += sprintf(buffer + len,"Available Mem: %ldKB\n",info.freeram/1024);
-   len += sprintf(buffer + len,"Percent avail: %.2LF%%\n",
+   len += sprintf(buffer + len,"Free Mem: %ldKB\n",info.freeram/1024);
+   len += sprintf(buffer + len,"%% Free  : %.2LF%%\n",
                       (long double)info.freeram / (long double)info.totalram * 100);
    
    return len;
