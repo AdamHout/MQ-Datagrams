@@ -119,7 +119,7 @@ int main(int argc, char **argv)
         }
      }
      else{  
-        printf("Msg ID: ");                                                      //Add MQMD.MsgId to console output
+        printf("Msg ID  : ");                                                    //Add MQMD.MsgId to console output
         for(ctr=0; ctr<MQ_MSG_ID_LENGTH; ctr++)
            printf("%02X",msgDsc.MsgId[ctr]);
         printf("\n");
