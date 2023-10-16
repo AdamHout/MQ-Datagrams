@@ -24,8 +24,9 @@ int main(int argc, char **argv)
 	//Connection literals
    char *pQmg = "QM1";                             //Target queue manager
    char *pQue = "DEV.ADAM";                        //Target queue
-   char *pUID = "app";                             //MQ client user ID
-   char *pPwd = "Vn750a16!";                       //Client password
+   char uid[10];                                   //User ID
+   char pwd[10];                                   //User password
+   FILE *pFP;                                      //File pointer
    char msgBuf[BUF_SIZE];                          //Output message buffer
    int  ctr;                                       //Index counter
    
@@ -52,10 +53,19 @@ int main(int argc, char **argv)
    cnxOpt.SecurityParmsPtr = &cnxSec;
    cnxOpt.Version = MQCNO_VERSION_5;
    cnxSec.AuthenticationType = MQCSP_AUTH_USER_ID_AND_PWD;
-   cnxSec.CSPUserIdPtr = pUID;                                                //ID = "app"
-   cnxSec.CSPUserIdLength = 3;
-   cnxSec.CSPPasswordPtr = pPwd;
-   cnxSec.CSPPasswordLength = 9;
+   
+   pFP = fopen("/home/adam/mqusers","r");
+   if (pFP == NULL){
+	   fprintf(stderr, "fopen() failed in file %s at line # %d", __FILE__,__LINE__);
+	   return -1;
+	}
+   
+	fscanf(pFP,"%s %s",uid,pwd);
+	fclose(pFP);
+   cnxSec.CSPUserIdPtr = uid;                                            
+   cnxSec.CSPUserIdLength = strlen(uid);
+   cnxSec.CSPPasswordPtr = pwd;
+   cnxSec.CSPPasswordLength = strlen(pwd);
    
    //-------------------------------------------------------
    //Connect to the queue manager; Check for errors/warnings
