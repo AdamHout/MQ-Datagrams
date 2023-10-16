@@ -37,10 +37,7 @@ int main(int argc, char **argv)
    char *pQue = "DEV.ADAM";                        //Target queue
    char uid[10];                                   //User ID
    char pwd[10];                                   //User password
-   FILE *pFP; 
-   
- //  char *pUID = "app";                             //MQ client user ID
- //  char *pPwd = "Vn750a16!";                       //Client password
+   FILE *pFP;                                      //File pointer
    
    //MQI structures
    MQCNO   cnxOpt = {MQCNO_DEFAULT};               //Connection options  
