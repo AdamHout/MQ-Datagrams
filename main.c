@@ -126,7 +126,7 @@ int main(int argc, char **argv)
       //memcpy(msgDsc.MsgId,MQMI_NONE,sizeof(msgDsc.MsgId));
       msgLen = buildMsg(msgBuf);
       if (msgLen < 1)
-         break
+         break;
          
       MQPUT(Hcnx,Hobj,&msgDsc,&putOpt,msgLen,msgBuf,&cmpCde,&resCde);
       if (resCde != MQRC_NONE){

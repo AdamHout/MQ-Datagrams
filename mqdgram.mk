@@ -2,10 +2,10 @@
 ## Auto Generated makefile by CodeLite IDE
 ## any manual changes will be erased      
 ##
-## Release
+## Debug
 ProjectName            :=mqdgram
-ConfigurationName      :=Release
-WorkspaceConfiguration :=Release
+ConfigurationName      :=Debug
+WorkspaceConfiguration :=Debug
 WorkspacePath          :=/home/adam/Codelite-workspace
 ProjectPath            :=/home/adam/Codelite-workspace/mqdgram
 IntermediateDirectory  :=$(ConfigurationName)
@@ -14,7 +14,7 @@ CurrentFileName        :=
 CurrentFilePath        :=
 CurrentFileFullPath    :=
 User                   :=adam
-Date                   :=16/10/23
+Date                   :=19/10/23
 CodeLitePath           :=/home/adam/.codelite
 LinkerName             :=/usr/bin/g++
 SharedObjectLinkerName :=/usr/bin/g++ -shared -fPIC
@@ -30,7 +30,7 @@ PreprocessorSwitch     :=-D
 SourceSwitch           :=-c 
 OutputDirectory        :=$(IntermediateDirectory)
 OutputFile             :=$(IntermediateDirectory)/$(ProjectName)
-Preprocessors          :=$(PreprocessorSwitch)NDEBUG 
+Preprocessors          :=
 ObjectSwitch           :=-o 
 ArchiveOutputSwitch    := 
 PreprocessOnlySwitch   :=-E
@@ -52,8 +52,8 @@ LibPath                := $(LibraryPathSwitch). $(LibraryPathSwitch)/opt/mqm/lib
 AR       := /usr/bin/ar rcu
 CXX      := /usr/bin/g++
 CC       := /usr/bin/gcc
-CXXFLAGS :=  -O2 -Wall $(Preprocessors)
-CFLAGS   :=  -O2 -Wall $(Preprocessors)
+CXXFLAGS :=  -gdwarf-2 -O0 -Wall $(Preprocessors)
+CFLAGS   :=  -gdwarf-2 -O0 -Wall $(Preprocessors)
 ASFLAGS  := 
 AS       := /usr/bin/as
 
